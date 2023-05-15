@@ -97,7 +97,7 @@ def map_paths(doc):
                 option1diff = option1 - altitude
             option2 = int(y_coordinates[yposition][xposition + 1])
             option2diff = option2 - altitude
-            if (yposition + 1 <= y_coordinates_length - 1):
+            if (yposition + 1 <= y_coordinates_length - 2):
                 option3 = int(y_coordinates[yposition + 1][xposition + 1])
                 option3diff = option3 - altitude
             if(option2diff < 0):
