@@ -85,6 +85,7 @@ def map_paths(doc):
     path_storage = []
     while ystart < y_coordinates_length - 1:
         paths = {}
+        altitudes = []
         total_alt_change = 0
         path = []
 
@@ -131,11 +132,12 @@ def map_paths(doc):
             xposition += 1 
             total_alt_change += best_path_diff
             path.append((xposition, yposition))
+            altitudes.append(best_path_diff)
             if path_color is not None:
                 map.putpixel((xposition, yposition), ImageColor.getcolor(path_color, 'RGBA'))
             else:
                 map.putpixel((xposition, yposition), (255, 0, 0, 255)) 
-        paths = {'total_alt_change': total_alt_change, 'path': path}
+        paths = {'total_alt_change': total_alt_change, 'path': path, 'altitude': altitudes}
         path_storage.append(paths)
         ystart += 1
     map.save("newmap_paths.png")
@@ -147,17 +149,34 @@ def map_optimize(paths):
 
     optimal_path_alt= paths[0]['total_alt_change']
     optimal_path = paths[0]['path']
+    optimal_altitudes = paths[0]['altitude']
+    count = 0
+    upcount = 0
     for path in paths:
         if (path['total_alt_change'] < optimal_path_alt):
             optimal_path_alt = path['total_alt_change']
             optimal_path = path['path']
-    for coor in optimal_path:
+            optimal_altitudes = path['altitude']
+    while count < len(optimal_path):
+        coor = optimal_path[count]
         if optimal_color is not None:
             map.putpixel((coor[0], coor[1]), ImageColor.getcolor(optimal_color, 'RGBA'))
             optimal_path_map.putpixel((coor[0], coor[1]), ImageColor.getcolor(optimal_color, 'RGBA'))
         else:
             map.putpixel((coor[0], coor[1]), (0, 255, 0, 255))
             optimal_path_map.putpixel((coor[0], coor[1]), (0, 255, 0, 255))
+        if count > 0 and count < len(optimal_path) -1:
+            if optimal_altitudes[count] > optimal_altitudes[count - 1]:
+                upcount += 1
+                if upcount > 0:
+                    if optimal_color != 'red' or optimal_color != 'pink':
+                        optimal_path_map.putpixel((coor[0], coor[1]), ImageColor.getcolor('red', 'RGBA'))
+                    else:
+                        optimal_path_map.putpixel((coor[0], coor[1]), ImageColor.getcolor('blue', 'RGBA'))
+            else:
+                upcount = 0
+            
+        count += 1
     map.save('newmap_paths.png')
     optimal_path_map.save('optimal_path_map.png')
 
