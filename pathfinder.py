@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-e", "--data", help="txt file with elevation data")
 parser.add_argument("-pc", "--path_color", help="Optional variable for customizing path color")
 parser.add_argument("-opc", "--optimal_path_color", help="Optional variable for customizing the optimal path color")
+parser.add_argument("-lpc", "--lowest_path_color", help="Optional variable for customizing lowest path color")
 args = parser.parse_args()
 if args.optimal_path_color:
     optimal_color = args.optimal_path_color
@@ -16,6 +17,10 @@ if args.path_color:
     path_color = args.path_color
 else:
     path_color = None
+if args.lowest_path_color:
+    lowest_path_color = args.lowest_path_color
+else:
+    lowest_path_color = None
 filename = args.data
 
 def open_file(filename):
@@ -86,7 +91,10 @@ def map_paths(doc):
         xposition = 0
         yposition = ystart        
         path.append((xposition, yposition))
-        map.putpixel((xposition, yposition), (255, 0, 0, 255)) 
+        if path_color is not None:
+            map.putpixel((xposition, yposition), ImageColor.getcolor(path_color, 'RGBA'))
+        else:
+            map.putpixel((xposition, yposition), (255, 0, 0, 255))
 
         while xposition < x_coordinates_length - 1:
             altitude = int(y_coordinates[yposition][xposition])
@@ -153,10 +161,80 @@ def map_optimize(paths):
     map.save('newmap_paths.png')
     optimal_path_map.save('optimal_path_map.png')
 
+def map_lowest_path(doc):
+    map = Image.open('newmap_paths.png')
+    lowest_path_map = Image.open('newmap.png')
+
+    coordinates = doc.split("\n")
+    y_coordinates = list(filter(lambda x : x != '' and x != " ", coordinates))
+    y_coordinates = []
+    for x in coordinates:
+        var = x.split(" ")
+        y_coordinates.append(var)
+    y_coordinates_length = len(y_coordinates) 
+    x_coordinates_length = len(y_coordinates[0])
+
+    xposition = 0
+    yposition = 0
+    count = 0
+    start_alt = int(y_coordinates[0][0])
+    
+    while count < len(y_coordinates):
+        if y_coordinates[count][0] != '':
+            if int(y_coordinates[count][0]) < start_alt:
+                start_alt = int(y_coordinates[count][0])
+                yposition = count
+        count += 1
+
+    if lowest_path_color is not None:
+        map.putpixel((xposition, yposition), ImageColor.getcolor(lowest_path_color, 'RGBA'))
+        lowest_path_map.putpixel((xposition, yposition), ImageColor.getcolor(lowest_path_color, 'RGBA'))
+    else:
+        map.putpixel((xposition, yposition), ImageColor.getcolor('blue', 'RGBA'))
+        lowest_path_map.putpixel((xposition, yposition), ImageColor.getcolor('blue', 'RGBA'))
+
+    while xposition < x_coordinates_length - 1:
+        altitude = int(y_coordinates[yposition][xposition])
+        option1 = None
+        option3 = None
+        if (yposition - 1 >= 0):
+            option1 = int(y_coordinates[yposition - 1][xposition + 1])
+            option1diff = option1 - altitude
+        option2 = int(y_coordinates[yposition][xposition + 1])
+        option2diff = option2 - altitude
+        if (yposition + 1 <= y_coordinates_length - 2):
+            option3 = int(y_coordinates[yposition + 1][xposition + 1])
+            option3diff = option3 - altitude
+        best_path = 2
+        best_path_diff = option2diff
+        if(option1 is not None):
+            if(option1diff < best_path_diff):
+                best_path = 1
+                best_path_diff = option1diff
+        if(option3 is not None):
+            if(option3diff < best_path_diff):
+                best_path = 3
+                best_path_diff = option3diff 
+        if (best_path == 1):
+            yposition -= 1
+        if (best_path == 3):
+            yposition += 1
+        xposition += 1 
+
+        if lowest_path_color is not None:
+            map.putpixel((xposition, yposition), ImageColor.getcolor(lowest_path_color, 'RGBA'))
+            lowest_path_map.putpixel((xposition, yposition), ImageColor.getcolor(lowest_path_color, 'RGBA'))
+        else:
+            map.putpixel((xposition, yposition), ImageColor.getcolor('blue', 'RGBA'))
+            lowest_path_map.putpixel((xposition, yposition), ImageColor.getcolor('blue', 'RGBA'))
+    map.save("newmap_paths.png")
+    lowest_path_map.save('lowest_path_map.png')
+
 def map_init(filename):
     doc = open_file(filename)
     map_creator(doc)
     paths = map_paths(doc)
+    map_lowest_path(doc)
     map_optimize(paths)
     print("complete")
 
